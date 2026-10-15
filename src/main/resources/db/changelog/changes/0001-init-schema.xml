@@ -1,0 +1,67 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+                            http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-4.9.xsd">
+
+    <changeSet id="0001-01-create-users" author="tenagrim">
+        <sql><![CDATA[
+            CREATE TABLE "user"
+            (
+                id            BIGSERIAL PRIMARY KEY,
+                name          VARCHAR(500) NOT NULL,
+                date_of_birth DATE         NOT NULL,
+                password      VARCHAR(500) NOT NULL
+            );
+            ]]></sql>
+    </changeSet>
+
+    <changeSet id="0001-02-create-user-account" author="tenagrim">
+        <sql><![CDATA[
+            CREATE TABLE account (
+                                     id          BIGSERIAL       PRIMARY KEY,
+                                     user_id     BIGINT          NOT NULL UNIQUE,
+                                     balance     DECIMAL(19, 2)  NOT NULL DEFAULT 0.00,
+                                     CONSTRAINT fk_account_user
+                                         FOREIGN KEY (user_id) REFERENCES "user" (id)
+                                             ON DELETE CASCADE
+            );
+        ]]></sql>
+    </changeSet>
+
+    <changeSet id="0001-03-create-email-data" author="tenagrim">
+        <sql><![CDATA[
+            CREATE TABLE email_data (
+                                        id          BIGSERIAL       PRIMARY KEY,
+                                        user_id     BIGINT          NOT NULL,
+                                        email       VARCHAR(200)    NOT NULL UNIQUE,
+                                        CONSTRAINT fk_email_data_user
+                                            FOREIGN KEY (user_id) REFERENCES "user" (id)
+                                                ON DELETE CASCADE
+            );
+        ]]></sql>
+    </changeSet>
+
+    <changeSet id="0001-04-create-phone-data" author="tenagrim">
+        <sql><![CDATA[
+            CREATE TABLE phone_data (
+                                        id          BIGSERIAL       PRIMARY KEY,
+                                        user_id     BIGINT          NOT NULL,
+                                        phone       VARCHAR(13)     NOT NULL UNIQUE,
+                                        CONSTRAINT fk_phone_data_user
+                                            FOREIGN KEY (user_id) REFERENCES "user" (id)
+                                                ON DELETE CASCADE
+            );
+        ]]></sql>
+    </changeSet>
+
+    <changeSet id="0001-05-create-indexes" author="tenagrim">
+        <sql><![CDATA[
+            CREATE INDEX idx_account_user_id    ON account    (user_id);
+            CREATE INDEX idx_email_data_user_id ON email_data (user_id);
+            CREATE INDEX idx_phone_data_user_id ON phone_data (user_id);
+        ]]></sql>
+    </changeSet>
+
+</databaseChangeLog>
