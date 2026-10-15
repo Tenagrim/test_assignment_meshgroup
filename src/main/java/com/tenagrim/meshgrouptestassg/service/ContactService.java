@@ -46,8 +46,7 @@ public class ContactService {
     @Transactional
     public EmailData updateEmail(Long userId, EmailUpdateRequest request) {
         EmailData email = emailRepository.findByEmail(request.getOldEmail())
-                .orElseThrow(() -> new EntityNotFoundException(
-                        "Email not found: " + request.getOldEmail()));
+                .orElseThrow(() -> new AccessDeniedException("Email does not belong to current user"));
 
         if (!email.getUser().getId().equals(userId)) {
             throw new AccessDeniedException("Email does not belong to current user");
@@ -101,8 +100,7 @@ public class ContactService {
     @Transactional
     public PhoneData updatePhone(Long userId, PhoneUpdateRequest request) {
         PhoneData phone = phoneRepository.findByPhone(request.getOldPhone())
-                .orElseThrow(() -> new EntityNotFoundException(
-                        "Phone not found: " + request.getOldPhone()));
+                .orElseThrow(() -> new AccessDeniedException("Phone does not belong to current user"));
 
         if (!phone.getUser().getId().equals(userId)) {
             throw new AccessDeniedException("Phone does not belong to current user");
