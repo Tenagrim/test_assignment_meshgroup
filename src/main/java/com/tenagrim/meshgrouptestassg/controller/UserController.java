@@ -7,11 +7,13 @@ import com.tenagrim.meshgrouptestassg.service.UserService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 
 
 @Tag(name = "Users", description = "Операции с пользователями")
 @RestController
+@SecurityRequirement(name = "bearerAuth")
 @RequestMapping("/api/users")
 public class UserController {
 
@@ -23,19 +25,24 @@ public class UserController {
 
     @Operation(summary = "Получить пользователя по ID")
     @GetMapping("/{id}")
-    @SecurityRequirement(name = "bearerAuth")
     public UserResponse getById(@PathVariable Long id) {
         return userService.getById(id);
     }
 
     @Operation(summary = "Поиск пользователей с фильтрацией и пагинацией")
     @GetMapping
-    @SecurityRequirement(name = "bearerAuth")
     public PageResponse<UserResponse> search(
             @ModelAttribute UserSearchRequest filter,
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "20") int size
     ) {
         return userService.search(filter, page, size);
+    }
+
+    @Operation(summary = "Получить свой профиль с контактами")
+    @GetMapping("/me")
+    public UserResponse getCurrentUser(Authentication auth) {
+        Long userId = (Long) auth.getPrincipal();
+        return userService.getById(userId);
     }
 }

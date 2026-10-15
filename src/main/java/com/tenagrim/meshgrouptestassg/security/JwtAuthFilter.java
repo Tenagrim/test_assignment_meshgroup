@@ -18,17 +18,17 @@ import java.io.IOException;
 import java.util.Arrays;
 import java.util.Collections;
 
+import static com.tenagrim.meshgrouptestassg.config.Constants.PUBLIC_PATHS;
+
 @Component
 public class JwtAuthFilter extends OncePerRequestFilter {
 
     private final JwtService jwtService;
-    private final UserDetailsService userDetailsService;
 
     private static final AntPathMatcher PATH_MATCHER = new AntPathMatcher();
 
-    public JwtAuthFilter(JwtService jwtService, UserDetailsService userDetailsService) {
+    public JwtAuthFilter(JwtService jwtService) {
         this.jwtService = jwtService;
-        this.userDetailsService = userDetailsService;
     }
 
     @Override
@@ -38,7 +38,7 @@ public class JwtAuthFilter extends OncePerRequestFilter {
             throws ServletException, IOException {
 
         String path = request.getServletPath();
-        boolean isPublic = Arrays.stream(SecurityConfig.PUBLIC_PATHS)
+        boolean isPublic = Arrays.stream(PUBLIC_PATHS)
                 .anyMatch(pattern -> PATH_MATCHER.match(pattern, path));
 
         if (isPublic) {

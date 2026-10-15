@@ -7,13 +7,16 @@ import org.springframework.stereotype.Service;
 
 import java.util.regex.Pattern;
 
+import static com.tenagrim.meshgrouptestassg.config.Constants.EMAIL_REGEX;
+import static com.tenagrim.meshgrouptestassg.config.Constants.PHONE_REGEX;
+
 @Service
 public class UserLookupService {
 
     private static final Pattern EMAIL_PATTERN =
-            Pattern.compile("^[A-Za-z0-9+_.-]+@[A-Za-z0-9.-]+$");
+            Pattern.compile(EMAIL_REGEX);
     private static final Pattern PHONE_PATTERN =
-            Pattern.compile("^\\d{11}$"); // 79207865432
+            Pattern.compile(PHONE_REGEX); // 79207865432
 
     private final UserRepository userRepository;
 

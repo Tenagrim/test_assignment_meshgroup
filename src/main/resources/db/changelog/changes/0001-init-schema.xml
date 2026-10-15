@@ -27,7 +27,8 @@
                                      CONSTRAINT fk_account_user
                                          FOREIGN KEY (user_id) REFERENCES "user" (id)
                                              ON DELETE CASCADE,
-                                     CONSTRAINT uq_account_user_id UNIQUE (user_id)
+                                     CONSTRAINT uq_account_user_id UNIQUE (user_id),
+                                     CONSTRAINT chk_account_balance_non_negative CHECK (balance >= 0)
             );
         ]]></sql>
     </changeSet>
