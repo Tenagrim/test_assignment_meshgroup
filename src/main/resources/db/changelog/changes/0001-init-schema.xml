@@ -12,7 +12,8 @@
                 id            BIGSERIAL PRIMARY KEY,
                 name          VARCHAR(500) NOT NULL,
                 date_of_birth DATE         NOT NULL,
-                password      VARCHAR(500) NOT NULL
+                password      VARCHAR(500) NOT NULL,
+                CONSTRAINT chk_user_password_length CHECK (char_length(password) >= 8)
             );
             ]]></sql>
     </changeSet>
@@ -25,7 +26,8 @@
                                      balance     DECIMAL(19, 2)  NOT NULL DEFAULT 0.00,
                                      CONSTRAINT fk_account_user
                                          FOREIGN KEY (user_id) REFERENCES "user" (id)
-                                             ON DELETE CASCADE
+                                             ON DELETE CASCADE,
+                                     CONSTRAINT uq_account_user_id UNIQUE (user_id)
             );
         ]]></sql>
     </changeSet>

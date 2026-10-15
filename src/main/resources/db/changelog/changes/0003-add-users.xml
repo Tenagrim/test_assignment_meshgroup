@@ -1,0 +1,74 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+                            http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-4.9.xsd">
+
+    <changeSet id="0003-01-insert-user-1" author="tenagrim">
+        <sql splitStatements="false"><![CDATA[
+            DO $$
+            DECLARE
+                v_user_id BIGINT;
+                BEGIN
+                INSERT INTO "user" (name, date_of_birth, password)
+                VALUES ('Иван Иванов', '1990-05-15', 'password123')
+                    RETURNING id INTO v_user_id;
+
+                INSERT INTO account (user_id, balance)
+                VALUES (v_user_id, 1000.50);
+
+                INSERT INTO email_data (user_id, email)
+                VALUES (v_user_id, 'ivan.ivanov@example.com');
+
+                INSERT INTO phone_data (user_id, phone)
+                VALUES (v_user_id, '79207865432');
+            END $$;
+            ]]></sql>
+    </changeSet>
+
+    <changeSet id="0003-02-insert-user-2" author="tenagrim">
+        <sql splitStatements="false"><![CDATA[
+            DO $$
+            DECLARE
+                v_user_id BIGINT;
+                BEGIN
+                INSERT INTO "user" (name, date_of_birth, password)
+                VALUES ('Пётр Петров', '1985-11-03', 'password456')
+                    RETURNING id INTO v_user_id;
+
+                INSERT INTO account (user_id, balance)
+                VALUES (v_user_id, 25000.00);
+
+                INSERT INTO email_data (user_id, email)
+                VALUES (v_user_id, 'petr.petrov@example.com');
+
+                INSERT INTO phone_data (user_id, phone)
+                VALUES (v_user_id, '79123456789');
+            END $$;
+            ]]></sql>
+    </changeSet>
+
+    <changeSet id="0003-03-insert-user-3" author="tenagrim">
+        <sql splitStatements="false"><![CDATA[
+            DO $$
+            DECLARE
+                v_user_id BIGINT;
+                BEGIN
+                INSERT INTO "user" (name, date_of_birth, password)
+                VALUES ('Анна Сидорова', '1995-02-20', 'qwerty789')
+                    RETURNING id INTO v_user_id;
+
+                INSERT INTO account (user_id, balance)
+                VALUES (v_user_id, 500.75);
+
+                INSERT INTO email_data (user_id, email)
+                VALUES (v_user_id, 'anna.sidorova@example.com');
+
+                INSERT INTO phone_data (user_id, phone)
+                VALUES (v_user_id, '79998887766');
+            END $$;
+            ]]></sql>
+    </changeSet>
+
+</databaseChangeLog>

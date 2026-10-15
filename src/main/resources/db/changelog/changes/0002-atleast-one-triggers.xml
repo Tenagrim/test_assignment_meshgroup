@@ -1,0 +1,95 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+                            http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-4.9.xsd">
+
+    <changeSet id="0002-01-check-user-has-email" author="tenagrim">
+        <sql splitStatements="false"><![CDATA[
+            CREATE OR REPLACE FUNCTION check_user_has_email()
+            RETURNS TRIGGER AS $$
+                        BEGIN
+                IF NOT EXISTS (SELECT 1 FROM email_data WHERE user_id = NEW.id) THEN
+                    RAISE EXCEPTION 'User % must have at least one email', NEW.id;
+                        END IF;
+                        RETURN NEW;
+                        END;
+            $$ LANGUAGE plpgsql;
+            ]]></sql>
+    </changeSet>
+
+    <changeSet id="0002-02-check-user-has-phone" author="tenagrim">
+        <sql splitStatements="false"><![CDATA[
+            CREATE OR REPLACE FUNCTION check_user_has_phone()
+            RETURNS TRIGGER AS $$
+                        BEGIN
+                IF NOT EXISTS (SELECT 1 FROM phone_data WHERE user_id = NEW.id) THEN
+                    RAISE EXCEPTION 'User % must have at least one phone', NEW.id;
+                        END IF;
+                        RETURN NEW;
+                        END;
+            $$ LANGUAGE plpgsql;
+            ]]></sql>
+    </changeSet>
+
+    <changeSet id="0002-03-check-user-has-account" author="tenagrim">
+        <sql splitStatements="false"><![CDATA[
+            CREATE OR REPLACE FUNCTION check_user_has_account()
+            RETURNS TRIGGER AS $$
+                        BEGIN
+                IF NOT EXISTS (SELECT 1 FROM account WHERE user_id = NEW.id) THEN
+                    RAISE EXCEPTION 'User % must have only one account', NEW.id;
+                        END IF;
+                        RETURN NEW;
+                        END;
+            $$ LANGUAGE plpgsql;
+            ]]></sql>
+    </changeSet>
+
+    <changeSet id="0002-04-user-insert-checks" author="tenagrim">
+        <sql><![CDATA[
+            CREATE CONSTRAINT TRIGGER trg_user_account_check
+                AFTER INSERT ON "user"
+                DEFERRABLE INITIALLY DEFERRED
+                FOR EACH ROW
+                EXECUTE FUNCTION check_user_has_account();
+            CREATE CONSTRAINT TRIGGER trg_user_email_check
+                AFTER INSERT ON "user"
+                DEFERRABLE INITIALLY DEFERRED
+                FOR EACH ROW
+                EXECUTE FUNCTION check_user_has_email();
+
+            CREATE CONSTRAINT TRIGGER trg_user_phone_check
+                AFTER INSERT ON "user"
+                DEFERRABLE INITIALLY DEFERRED
+                FOR EACH ROW
+                EXECUTE FUNCTION check_user_has_phone();
+            ]]></sql>
+    </changeSet>
+
+    <changeSet id="0002-05-user-delete-checks" author="tenagrim">
+        <sql><![CDATA[
+            CREATE CONSTRAINT TRIGGER trg_account_delete_check
+                AFTER DELETE ON account
+                DEFERRABLE INITIALLY DEFERRED
+                FOR EACH ROW
+                EXECUTE FUNCTION check_user_has_account();
+
+            CREATE CONSTRAINT TRIGGER trg_email_delete_check
+                AFTER DELETE ON email_data
+                DEFERRABLE INITIALLY DEFERRED
+                FOR EACH ROW
+                EXECUTE FUNCTION check_user_has_email();
+
+            CREATE CONSTRAINT TRIGGER trg_phone_delete_check
+                AFTER DELETE ON phone_data
+                DEFERRABLE INITIALLY DEFERRED
+                FOR EACH ROW
+                EXECUTE FUNCTION check_user_has_phone();
+            ]]></sql>
+    </changeSet>
+
+
+
+</databaseChangeLog>
