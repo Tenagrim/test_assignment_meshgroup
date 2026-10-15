@@ -1,11 +1,13 @@
 package com.tenagrim.meshgrouptestassg.controller;
 
+
 import com.tenagrim.meshgrouptestassg.dto.request.LoginRequest;
+import com.tenagrim.meshgrouptestassg.entity.User;
 import com.tenagrim.meshgrouptestassg.security.JwtService;
+import com.tenagrim.meshgrouptestassg.service.UserLookupService;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
-import org.springframework.security.core.userdetails.UserDetails;
-import org.springframework.security.core.userdetails.UserDetailsService;
+
 import org.springframework.web.bind.annotation.*;
 
 @RestController
@@ -14,23 +16,24 @@ public class AuthController {
 
     private final AuthenticationManager authenticationManager;
     private final JwtService jwtService;
-    private final UserDetailsService userDetailsService;
+    private final UserLookupService userLookupService;
 
     public AuthController(AuthenticationManager authenticationManager,
                           JwtService jwtService,
-                          UserDetailsService userDetailsService) {
+                          UserLookupService userLookupService) {
         this.authenticationManager = authenticationManager;
         this.jwtService = jwtService;
-        this.userDetailsService = userDetailsService;
+        this.userLookupService = userLookupService;
     }
 
     @PostMapping("/login")
     public String login(@RequestBody LoginRequest request) {
+        User user = userLookupService.findByLogin(request.getLogin());
+
         authenticationManager.authenticate(
-                new UsernamePasswordAuthenticationToken(request.getName(), request.getPassword())
+                new UsernamePasswordAuthenticationToken(user.getName(), request.getPassword())
         );
 
-        UserDetails userDetails = userDetailsService.loadUserByUsername(request.getName());
-        return jwtService.generateToken(userDetails);
+        return jwtService.generateToken( user.getId());
     }
 }
