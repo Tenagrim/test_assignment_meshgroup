@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+                            http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-4.9.xsd">
+
+    <changeSet id="0004-01-add-initial-balance" author="tenagrim">
+        <sql><![CDATA[
+            ALTER TABLE account ADD COLUMN initial_balance DECIMAL(19, 2) NOT NULL DEFAULT 0.00;
+            UPDATE account SET initial_balance = balance;
+            ]]></sql>
+    </changeSet>
+
+</databaseChangeLog>
