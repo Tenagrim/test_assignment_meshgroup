@@ -1,5 +1,6 @@
 package com.tenagrim.meshgrouptestassg.config;
 
+import com.tenagrim.meshgrouptestassg.security.JsonErrorWriter;
 import com.tenagrim.meshgrouptestassg.security.JwtAuthFilter;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -13,12 +14,18 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 
-import static com.tenagrim.meshgrouptestassg.config.Constants.PUBLIC_PATHS;
 
 @Configuration
 @EnableWebSecurity
 public class SecurityConfig {
     private final JwtAuthFilter jwtAuthFilter;
+
+    public static final String[] PUBLIC_PATHS = {
+            "/api/auth/**",
+            "/swagger-ui/**",
+            "/swagger-ui.html",
+            "/v3/api-docs/**"
+    };
 
     public SecurityConfig(JwtAuthFilter jwtAuthFilter) {
         this.jwtAuthFilter = jwtAuthFilter;
@@ -34,6 +41,8 @@ public class SecurityConfig {
                         .antMatchers(PUBLIC_PATHS).permitAll()
                         .anyRequest().authenticated()
                 )
+                .exceptionHandling(ex -> ex.authenticationEntryPoint((request, response, authException) ->
+                        JsonErrorWriter.writeUnauthorized(response, "Missing or malformed Authorization header")))
                 .addFilterBefore(jwtAuthFilter, UsernamePasswordAuthenticationFilter.class);
 
         return http.build();

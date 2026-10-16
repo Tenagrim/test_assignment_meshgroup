@@ -1,13 +1,9 @@
 package com.tenagrim.meshgrouptestassg.security;
 
-import com.tenagrim.meshgrouptestassg.config.SecurityConfig;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.context.SecurityContextHolder;
-import org.springframework.security.core.userdetails.UserDetails;
-import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.web.authentication.WebAuthenticationDetailsSource;
 import org.springframework.stereotype.Component;
-import org.springframework.util.AntPathMatcher;
 import org.springframework.web.filter.OncePerRequestFilter;
 
 import javax.servlet.FilterChain;
@@ -15,17 +11,14 @@ import javax.servlet.ServletException;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import java.io.IOException;
-import java.util.Arrays;
 import java.util.Collections;
-
-import static com.tenagrim.meshgrouptestassg.config.Constants.PUBLIC_PATHS;
 
 @Component
 public class JwtAuthFilter extends OncePerRequestFilter {
 
-    private final JwtService jwtService;
+    private static final String BEARER_PREFIX = "Bearer ";
 
-    private static final AntPathMatcher PATH_MATCHER = new AntPathMatcher();
+    private final JwtService jwtService;
 
     public JwtAuthFilter(JwtService jwtService) {
         this.jwtService = jwtService;
@@ -37,26 +30,17 @@ public class JwtAuthFilter extends OncePerRequestFilter {
                                     FilterChain filterChain)
             throws ServletException, IOException {
 
-        String path = request.getServletPath();
-        boolean isPublic = Arrays.stream(PUBLIC_PATHS)
-                .anyMatch(pattern -> PATH_MATCHER.match(pattern, path));
+        String authHeader = request.getHeader("Authorization");
 
-        if (isPublic) {
+        if (authHeader == null || !authHeader.startsWith(BEARER_PREFIX)) {
             filterChain.doFilter(request, response);
             return;
         }
 
-        String authHeader = request.getHeader("Authorization");
-
-        if (authHeader == null || !authHeader.startsWith("Bearer ")) {
-            sendUnauthorized(response, "Missing or malformed Authorization header");
-            return;
-        }
-
-        String token = authHeader.substring(7);
+        String token = authHeader.substring(BEARER_PREFIX.length());
 
         if (!jwtService.isValid(token)) {
-            sendUnauthorized(response, "Invalid or expired token");
+            JsonErrorWriter.writeUnauthorized(response, "Invalid or expired token");
             return;
         }
 
@@ -70,11 +54,5 @@ public class JwtAuthFilter extends OncePerRequestFilter {
         }
 
         filterChain.doFilter(request, response);
-    }
-
-    private void sendUnauthorized(HttpServletResponse response, String message) throws IOException {
-        response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
-        response.setContentType("application/json;charset=UTF-8");
-        response.getWriter().write("{\"error\":\"" + message + "\"}");
     }
 }
