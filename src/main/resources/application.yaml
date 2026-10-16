@@ -26,3 +26,6 @@ app:
   jwt:
     secret: "web.servletapi.SecurityContextHolderAwareRequestFilter@674d2b8b, org.springframework.security.web.authentication.AnonymousAuthenticationFilter@4c57ca10"
     expiration-ms: 2592000000 # 30 days
+  balance:
+    growth-rate: 1.10
+    max-multiplier: 2.07

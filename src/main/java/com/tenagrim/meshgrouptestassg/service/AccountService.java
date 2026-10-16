@@ -1,52 +1,35 @@
 package com.tenagrim.meshgrouptestassg.service;
 
-import com.tenagrim.meshgrouptestassg.entity.Account;
+
+import com.tenagrim.meshgrouptestassg.config.properties.BalanceProperties;
 import com.tenagrim.meshgrouptestassg.repository.AccountRepository;
+import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
-import java.math.RoundingMode;
-import java.util.List;
+import java.util.logging.Logger;
+
 
 @Service
 public class AccountService {
-    private static final BigDecimal GROWTH_RATE = new BigDecimal("1.10");
-    private static final BigDecimal MAX_MULTIPLIER = new BigDecimal("2.07");
+    private final BalanceProperties balancaProperties;
 
     private final AccountRepository accountRepository;
 
-    public AccountService(AccountRepository accountRepository) {
+    public AccountService(BalanceProperties balancaProperties, AccountRepository accountRepository) {
+        this.balancaProperties = balancaProperties;
         this.accountRepository = accountRepository;
     }
 
     @Transactional
     public void applyInterestAll() {
-        List<Account> accounts = accountRepository.findAll();
-
-        for (Account account : accounts) {
-            applyInterest(account);
-        }
+        accountRepository.applyInterestForAll(balancaProperties.getGrowthRate(), balancaProperties.getMaxMultiplier());
     }
 
-    private void applyInterest(Account account) {
-        BigDecimal current = account.getBalance();
-        BigDecimal max = account.getInitialBalance()
-                .multiply(MAX_MULTIPLIER)
-                .setScale(2, RoundingMode.HALF_UP);
-
-        if (current.compareTo(max) >= 0) {
-            return;
-        }
-
-        BigDecimal increased = current
-                .multiply(GROWTH_RATE)
-                .setScale(2, RoundingMode.HALF_UP);
-
-        if (increased.compareTo(max) > 0) {
-            increased = max;
-        }
-
-        account.setBalance(increased);
+    @Transactional
+    public void resetBalancesAll() {
+        int updated = accountRepository.initInitialBalance();
+        System.out.println("Initialized initial_balance for "+ updated +" accounts");
     }
 }

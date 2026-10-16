@@ -1,5 +1,6 @@
-package com.tenagrim.meshgrouptestassg.service;
+package com.tenagrim.meshgrouptestassg.service.scheduler;
 
+import com.tenagrim.meshgrouptestassg.service.AccountService;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 

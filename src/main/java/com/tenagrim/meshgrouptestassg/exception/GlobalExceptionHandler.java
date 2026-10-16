@@ -6,6 +6,7 @@ import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 
+import javax.persistence.EntityNotFoundException;
 import java.time.Instant;
 import java.util.HashMap;
 import java.util.Map;
@@ -13,7 +14,7 @@ import java.util.Map;
 @RestControllerAdvice
 public class GlobalExceptionHandler {
 
-    @ExceptionHandler(UserNotFoundException.class)
+    @ExceptionHandler({UserNotFoundException.class, EntityNotFoundException.class, AccountNotFoundException.class})
     public ResponseEntity<Map<String, Object>> handleNotFound(UserNotFoundException ex) {
         return build(HttpStatus.NOT_FOUND, ex.getMessage());
     }
@@ -41,9 +42,14 @@ public class GlobalExceptionHandler {
         return build(HttpStatus.FORBIDDEN, ex.getMessage());
     }
 
-    @ExceptionHandler(LastContactException.class)
-    public ResponseEntity<Map<String, Object>> handleLastContact(LastContactException ex) {
+    @ExceptionHandler({LastContactException.class, SelfTransferException.class})
+    public ResponseEntity<Map<String, Object>> handleBadRequest(LastContactException ex) {
         return build(HttpStatus.BAD_REQUEST, ex.getMessage());
+    }
+
+    @ExceptionHandler(InsufficientFundsException.class)
+    public ResponseEntity<Map<String, Object>> handleInsufficientFunds(InsufficientFundsException ex) {
+        return build(HttpStatus.UNPROCESSABLE_ENTITY, ex.getMessage());
     }
 
     private ResponseEntity<Map<String, Object>> build(HttpStatus status, String message) {
