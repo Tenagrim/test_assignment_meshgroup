@@ -8,11 +8,16 @@ import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import org.springframework.security.core.Authentication;
+import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
+
+import javax.validation.constraints.Max;
+import javax.validation.constraints.Min;
 
 
 @Tag(name = "Users", description = "Операции с пользователями")
 @RestController
+@Validated
 @SecurityRequirement(name = "bearerAuth")
 @RequestMapping("/api/users")
 public class UserController {
@@ -33,8 +38,8 @@ public class UserController {
     @GetMapping
     public PageResponse<UserResponse> search(
             @ModelAttribute UserSearchRequest filter,
-            @RequestParam(defaultValue = "0") int page,
-            @RequestParam(defaultValue = "20") int size
+            @RequestParam(defaultValue = "0") @Min(0) int page,
+            @RequestParam(defaultValue = "20") @Min(1) @Max(100) int size
     ) {
         return userService.search(filter, page, size);
     }

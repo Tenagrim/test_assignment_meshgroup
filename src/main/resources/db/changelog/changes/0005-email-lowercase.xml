@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+                            http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-4.9.xsd">
+
+    <changeSet id="0005-01-email-lowercase" author="tenagrim">
+        <sql><![CDATA[
+            UPDATE email_data SET email = lower(email) WHERE email <> lower(email);
+            ALTER TABLE email_data ADD CONSTRAINT chk_email_data_lowercase CHECK (email = lower(email));
+            ]]></sql>
+    </changeSet>
+
+</databaseChangeLog>

@@ -2,6 +2,7 @@ package com.tenagrim.meshgrouptestassg.service;
 
 import com.tenagrim.meshgrouptestassg.entity.User;
 import com.tenagrim.meshgrouptestassg.repository.UserRepository;
+import com.tenagrim.meshgrouptestassg.util.Emails;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.stereotype.Service;
 
@@ -26,7 +27,7 @@ public class UserLookupService {
 
     public User findByLogin(String login) {
         if (EMAIL_PATTERN.matcher(login).matches()) {
-            return userRepository.findByEmail(login)
+            return userRepository.findByEmail(Emails.normalize(login))
                     .orElseThrow(() -> new UsernameNotFoundException("User not found by email: " + login));
         }
         if (PHONE_PATTERN.matcher(login).matches()) {

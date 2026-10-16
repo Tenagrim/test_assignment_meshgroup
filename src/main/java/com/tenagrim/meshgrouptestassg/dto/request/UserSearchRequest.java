@@ -1,12 +1,15 @@
 package com.tenagrim.meshgrouptestassg.dto.request;
 
+import com.tenagrim.meshgrouptestassg.util.Emails;
 import org.springframework.format.annotation.DateTimeFormat;
 
 import java.time.LocalDate;
 
+import static com.tenagrim.meshgrouptestassg.config.Constants.DATE_FORMAT;
+
 public class UserSearchRequest {
 
-    @DateTimeFormat(iso = DateTimeFormat.ISO.DATE)
+    @DateTimeFormat(pattern = DATE_FORMAT)
     private LocalDate dateOfBirth;
 
     private String phone;
@@ -31,7 +34,7 @@ public class UserSearchRequest {
         return String.join("|",
                 String.valueOf(dateOfBirth),
                 normalize(phone),
-                normalize(email),
+                normalize(Emails.normalize(email)),
                 String.valueOf(page),
                 String.valueOf(size),
                 normalize(name));

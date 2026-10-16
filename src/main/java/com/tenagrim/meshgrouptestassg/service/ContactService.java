@@ -9,6 +9,11 @@ import com.tenagrim.meshgrouptestassg.exception.*;
 import com.tenagrim.meshgrouptestassg.repository.EmailDataRepository;
 import com.tenagrim.meshgrouptestassg.repository.PhoneDataRepository;
 import com.tenagrim.meshgrouptestassg.repository.UserRepository;
+import com.tenagrim.meshgrouptestassg.util.AfterCommit;
+import com.tenagrim.meshgrouptestassg.util.Emails;
+import com.tenagrim.meshgrouptestassg.util.Masking;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -16,6 +21,8 @@ import javax.persistence.EntityNotFoundException;
 
 @Service
 public class ContactService {
+
+    private static final Logger log = LoggerFactory.getLogger(ContactService.class);
 
     private final UserRepository userRepository;
     private final EmailDataRepository emailRepository;
@@ -32,8 +39,9 @@ public class ContactService {
     @EvictUserCaches
     @Transactional
     public EmailData addEmail(Long userId, EmailRequest request) {
-        if (emailRepository.existsByEmail(request.getEmail())) {
-            throw new EmailAlreadyTakenException(request.getEmail());
+        String value = Emails.normalize(request.getEmail());
+        if (emailRepository.existsByEmail(value)) {
+            throw new EmailAlreadyTakenException(value);
         }
 
         User user = userRepository.findById(userId)
@@ -41,38 +49,47 @@ public class ContactService {
 
         EmailData email = new EmailData();
         email.setUser(user);
-        email.setEmail(request.getEmail());
-        return emailRepository.save(email);
+        email.setEmail(value);
+        EmailData saved = emailRepository.save(email);
+        AfterCommit.run(() -> log.info("Email added: userId={} email={}", userId, Masking.email(value)));
+        return saved;
     }
 
     @EvictUserCaches
     @Transactional
     public EmailData updateEmail(Long userId, EmailUpdateRequest request) {
-        EmailData email = emailRepository.findByEmail(request.getOldEmail())
+        String oldEmail = Emails.normalize(request.getOldEmail());
+        String newEmail = Emails.normalize(request.getNewEmail());
+
+        EmailData email = emailRepository.findByEmail(oldEmail)
                 .orElseThrow(() -> new AccessDeniedException("Email does not belong to current user"));
 
         if (!email.getUser().getId().equals(userId)) {
             throw new AccessDeniedException("Email does not belong to current user");
         }
 
-        if (request.getNewEmail().equalsIgnoreCase(request.getOldEmail())) {
+        if (newEmail.equals(oldEmail)) {
             return email;
         }
 
-        if (emailRepository.existsByEmail(request.getNewEmail())) {
-            throw new EmailAlreadyTakenException(request.getNewEmail());
+        if (emailRepository.existsByEmail(newEmail)) {
+            throw new EmailAlreadyTakenException(newEmail);
         }
 
-        email.setEmail(request.getNewEmail());
-        return emailRepository.save(email);
+        email.setEmail(newEmail);
+        EmailData saved = emailRepository.save(email);
+        AfterCommit.run(() -> log.info("Email changed: userId={} from={} to={}",
+                userId, Masking.email(oldEmail), Masking.email(newEmail)));
+        return saved;
     }
 
     @EvictUserCaches
     @Transactional
     public void deleteEmail(Long userId, EmailRequest request) {
-        EmailData email = emailRepository.findByEmail(request.getEmail())
+        String value = Emails.normalize(request.getEmail());
+        EmailData email = emailRepository.findByEmail(value)
                 .orElseThrow(() -> new EntityNotFoundException(
-                        "Email not found: " + request.getEmail()));
+                        "Email not found: " + value));
 
         if (!email.getUser().getId().equals(userId)) {
             throw new AccessDeniedException("Email does not belong to current user");
@@ -83,6 +100,7 @@ public class ContactService {
         }
 
         emailRepository.delete(email);
+        AfterCommit.run(() -> log.info("Email deleted: userId={} email={}", userId, Masking.email(value)));
     }
 
 
@@ -99,7 +117,9 @@ public class ContactService {
         PhoneData phone = new PhoneData();
         phone.setUser(user);
         phone.setPhone(request.getPhone());
-        return phoneRepository.save(phone);
+        PhoneData saved = phoneRepository.save(phone);
+        AfterCommit.run(() -> log.info("Phone added: userId={} phone={}", userId, Masking.phone(request.getPhone())));
+        return saved;
     }
 
     @EvictUserCaches
@@ -121,7 +141,10 @@ public class ContactService {
         }
 
         phone.setPhone(request.getNewPhone());
-        return phoneRepository.save(phone);
+        PhoneData saved = phoneRepository.save(phone);
+        AfterCommit.run(() -> log.info("Phone changed: userId={} from={} to={}",
+                userId, Masking.phone(request.getOldPhone()), Masking.phone(request.getNewPhone())));
+        return saved;
     }
 
     @EvictUserCaches
@@ -140,5 +163,6 @@ public class ContactService {
         }
 
         phoneRepository.delete(phone);
+        AfterCommit.run(() -> log.info("Phone deleted: userId={} phone={}", userId, Masking.phone(request.getPhone())));
     }
 }

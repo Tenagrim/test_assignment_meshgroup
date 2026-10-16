@@ -28,6 +28,10 @@ spring:
     port: ${REDIS_PORT:6379}
     timeout: 2s
     connect-timeout: 2s
+logging:
+  pattern:
+    level: "%5p [req=%X{requestId:-}] [user=%X{userId:-}]"
+
 app:
   jwt:
     secret: "web.servletapi.SecurityContextHolderAwareRequestFilter@674d2b8b, org.springframework.security.web.authentication.AnonymousAuthenticationFilter@4c57ca10"

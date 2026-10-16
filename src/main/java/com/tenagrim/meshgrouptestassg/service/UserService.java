@@ -9,6 +9,7 @@ import com.tenagrim.meshgrouptestassg.exception.UserNotFoundException;
 import com.tenagrim.meshgrouptestassg.mapper.UserMapper;
 import com.tenagrim.meshgrouptestassg.repository.UserRepository;
 import com.tenagrim.meshgrouptestassg.repository.UserSpecifications;
+import com.tenagrim.meshgrouptestassg.util.Emails;
 import org.springframework.cache.annotation.Cacheable;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
@@ -46,7 +47,7 @@ public class UserService {
                         filter.getDateOfBirth(),
                         filter.getPhone(),
                         filter.getName(),
-                        filter.getEmail()
+                        Emails.normalize(filter.getEmail())
                 ), pageable)
                 .map(userMapper::toResponse);
 

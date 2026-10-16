@@ -6,6 +6,7 @@ import com.tenagrim.meshgrouptestassg.entity.Account;
 import com.tenagrim.meshgrouptestassg.exception.*;
 import com.tenagrim.meshgrouptestassg.repository.AccountRepository;
 import com.tenagrim.meshgrouptestassg.repository.UserRepository;
+import com.tenagrim.meshgrouptestassg.util.AfterCommit;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
@@ -29,6 +30,17 @@ public class TransferService {
 
     @Transactional
     public TransferResponse transfer(Long fromUserId, TransferRequest request) {
+        try {
+            return doTransfer(fromUserId, request);
+        } catch (InvalidTransferException | SelfTransferException | UserNotFoundException
+                 | AccountNotFoundException | InsufficientFundsException e) {
+            log.info("Transfer rejected: from={} to={} amount={} reason={}",
+                    fromUserId, request.getUserId(), request.getValue(), e.getMessage());
+            throw e;
+        }
+    }
+
+    private TransferResponse doTransfer(Long fromUserId, TransferRequest request) {
         Long toUserId = request.getUserId();
         BigDecimal amount = request.getValue();
 
@@ -61,20 +73,23 @@ public class TransferService {
         BigDecimal fromBefore = from.getBalance();
         BigDecimal toBefore = to.getBalance();
 
-        from.setBalance(fromBefore.subtract(amount));
-        to.setBalance(toBefore.add(amount));
+        BigDecimal fromAfter = fromBefore.subtract(amount);
+        BigDecimal toAfter = toBefore.add(amount);
 
-        log.info("Transfer: from={} to={} amount={} fromBalance: {} -> {} toBalance: {} -> {}",
+        from.setBalance(fromAfter);
+        to.setBalance(toAfter);
+
+        AfterCommit.run(() -> log.info("Transfer completed: from={} to={} amount={} fromBalance: {} -> {} toBalance: {} -> {}",
                 fromUserId, toUserId, amount,
-                fromBefore, from.getBalance(),
-                toBefore, to.getBalance());
+                fromBefore, fromAfter,
+                toBefore, toAfter));
 
         return new TransferResponse(
                 fromUserId,
                 toUserId,
                 amount,
-                from.getBalance(),
-                to.getBalance()
+                fromAfter,
+                toAfter
         );
     }
 
