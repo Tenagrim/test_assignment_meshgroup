@@ -9,8 +9,6 @@ import org.springframework.data.repository.query.Param;
 import java.util.Optional;
 
 public interface UserRepository extends JpaRepository<User, Long>, JpaSpecificationExecutor<User> {
-    Optional<User> findByName(String name);
-
     @Query("SELECT u FROM User u JOIN u.emails e WHERE e.email = :email")
     Optional<User> findByEmail(@Param("email") String email);
 

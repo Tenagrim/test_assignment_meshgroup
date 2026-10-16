@@ -1,7 +1,13 @@
 package com.tenagrim.meshgrouptestassg.dto.request;
 
+import javax.validation.constraints.NotBlank;
+
 public class LoginRequest {
-    private String login;     // email OR phone
+
+    @NotBlank(message = "Login (email or phone) is required")
+    private String login;
+
+    @NotBlank(message = "Password is required")
     private String password;
 
     public String getLogin() {

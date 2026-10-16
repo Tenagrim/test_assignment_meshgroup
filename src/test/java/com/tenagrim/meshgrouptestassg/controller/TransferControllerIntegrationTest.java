@@ -1,5 +1,6 @@
 package com.tenagrim.meshgrouptestassg.controller;
 
+import com.tenagrim.meshgrouptestassg.AbstractIntegrationTest;
 import com.tenagrim.meshgrouptestassg.dto.request.TransferRequest;
 import com.tenagrim.meshgrouptestassg.exception.InsufficientFundsException;
 import com.tenagrim.meshgrouptestassg.security.JwtService;
@@ -8,15 +9,9 @@ import com.tenagrim.meshgrouptestassg.service.TransferService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
-import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.http.MediaType;
 import org.springframework.jdbc.core.JdbcTemplate;
-import org.springframework.test.context.DynamicPropertyRegistry;
-import org.springframework.test.context.DynamicPropertySource;
-import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.ResultActions;
-import org.testcontainers.containers.PostgreSQLContainer;
 
 import java.math.BigDecimal;
 import java.util.ArrayList;
@@ -35,30 +30,11 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
-@SpringBootTest
-@AutoConfigureMockMvc
-class TransferControllerIntegrationTest {
+class TransferControllerIntegrationTest extends AbstractIntegrationTest {
 
     private static final long IVAN = 1L;
     private static final long PETR = 2L;
     private static final long ANNA = 3L;
-
-    static final PostgreSQLContainer<?> POSTGRES = new PostgreSQLContainer<>("postgres:17-alpine");
-
-    static {
-        POSTGRES.start();
-    }
-
-    @DynamicPropertySource
-    static void properties(DynamicPropertyRegistry registry) {
-        registry.add("spring.datasource.url", POSTGRES::getJdbcUrl);
-        registry.add("spring.datasource.username", POSTGRES::getUsername);
-        registry.add("spring.datasource.password", POSTGRES::getPassword);
-        registry.add("app.balance.growth-rate", () -> "1.00");
-    }
-
-    @Autowired
-    private MockMvc mockMvc;
 
     @Autowired
     private JwtService jwtService;
