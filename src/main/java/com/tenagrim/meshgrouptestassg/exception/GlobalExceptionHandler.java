@@ -15,7 +15,7 @@ import java.util.Map;
 public class GlobalExceptionHandler {
 
     @ExceptionHandler({UserNotFoundException.class, EntityNotFoundException.class, AccountNotFoundException.class})
-    public ResponseEntity<Map<String, Object>> handleNotFound(UserNotFoundException ex) {
+    public ResponseEntity<Map<String, Object>> handleNotFound(RuntimeException ex) {
         return build(HttpStatus.NOT_FOUND, ex.getMessage());
     }
 
@@ -42,8 +42,8 @@ public class GlobalExceptionHandler {
         return build(HttpStatus.FORBIDDEN, ex.getMessage());
     }
 
-    @ExceptionHandler({LastContactException.class, SelfTransferException.class})
-    public ResponseEntity<Map<String, Object>> handleBadRequest(LastContactException ex) {
+    @ExceptionHandler({LastContactException.class, SelfTransferException.class, InvalidTransferException.class})
+    public ResponseEntity<Map<String, Object>> handleBadRequest(RuntimeException ex) {
         return build(HttpStatus.BAD_REQUEST, ex.getMessage());
     }
 

@@ -9,12 +9,12 @@
         <sql splitStatements="false"><![CDATA[
             CREATE OR REPLACE FUNCTION check_user_has_email()
             RETURNS TRIGGER AS $$
-                        BEGIN
+            BEGIN
                 IF NOT EXISTS (SELECT 1 FROM email_data WHERE user_id = NEW.id) THEN
                     RAISE EXCEPTION 'User % must have at least one email', NEW.id;
-                        END IF;
-                        RETURN NEW;
-                        END;
+                END IF;
+                RETURN NEW;
+            END;
             $$ LANGUAGE plpgsql;
             ]]></sql>
     </changeSet>
@@ -23,12 +23,12 @@
         <sql splitStatements="false"><![CDATA[
             CREATE OR REPLACE FUNCTION check_user_has_phone()
             RETURNS TRIGGER AS $$
-                        BEGIN
+            BEGIN
                 IF NOT EXISTS (SELECT 1 FROM phone_data WHERE user_id = NEW.id) THEN
                     RAISE EXCEPTION 'User % must have at least one phone', NEW.id;
-                        END IF;
-                        RETURN NEW;
-                        END;
+                END IF;
+                RETURN NEW;
+            END;
             $$ LANGUAGE plpgsql;
             ]]></sql>
     </changeSet>
@@ -37,7 +37,7 @@
         <sql splitStatements="false"><![CDATA[
             CREATE OR REPLACE FUNCTION check_user_has_account()
             RETURNS TRIGGER AS $$
-                        BEGIN
+            BEGIN
                 IF NOT EXISTS (SELECT 1 FROM account WHERE user_id = NEW.id) THEN
                     RAISE EXCEPTION 'User % must have only one account', NEW.id;
                         END IF;
@@ -54,6 +54,7 @@
                 DEFERRABLE INITIALLY DEFERRED
                 FOR EACH ROW
                 EXECUTE FUNCTION check_user_has_account();
+
             CREATE CONSTRAINT TRIGGER trg_user_email_check
                 AFTER INSERT ON "user"
                 DEFERRABLE INITIALLY DEFERRED
@@ -68,28 +69,71 @@
             ]]></sql>
     </changeSet>
 
-    <changeSet id="0002-05-user-delete-checks" author="tenagrim">
+    <changeSet id="0002-05-check-email-delete" author="tenagrim">
+        <sql splitStatements="false"><![CDATA[
+            CREATE OR REPLACE FUNCTION check_email_delete()
+            RETURNS TRIGGER AS $$
+            BEGIN
+                IF EXISTS (SELECT 1 FROM "user" WHERE id = OLD.user_id)
+                    AND NOT EXISTS (SELECT 1 FROM email_data WHERE user_id = OLD.user_id) THEN
+                    RAISE EXCEPTION 'User % must have at least one email', OLD.user_id;
+                END IF;
+                RETURN OLD;
+            END;
+            $$ LANGUAGE plpgsql;
+            ]]></sql>
+    </changeSet>
+
+    <changeSet id="0002-06-check-phone-delete" author="tenagrim">
+        <sql splitStatements="false"><![CDATA[
+            CREATE OR REPLACE FUNCTION check_phone_delete()
+            RETURNS TRIGGER AS $$
+            BEGIN
+                IF EXISTS (SELECT 1 FROM "user" WHERE id = OLD.user_id)
+                    AND NOT EXISTS (SELECT 1 FROM phone_data WHERE user_id = OLD.user_id) THEN
+                    RAISE EXCEPTION 'User % must have at least one phone', OLD.user_id;
+                END IF;
+                RETURN OLD;
+            END;
+            $$ LANGUAGE plpgsql;
+            ]]></sql>
+    </changeSet>
+
+    <changeSet id="0002-07-check-account-delete" author="tenagrim">
+        <sql splitStatements="false"><![CDATA[
+            CREATE OR REPLACE FUNCTION check_account_delete()
+            RETURNS TRIGGER AS $$
+            BEGIN
+                IF EXISTS (SELECT 1 FROM "user" WHERE id = OLD.user_id)
+                    AND NOT EXISTS (SELECT 1 FROM account WHERE user_id = OLD.user_id) THEN
+                    RAISE EXCEPTION 'User % must have an account', OLD.user_id;
+                END IF;
+                RETURN OLD;
+            END;
+            $$ LANGUAGE plpgsql;
+            ]]></sql>
+    </changeSet>
+
+    <changeSet id="0002-08-delete-checks" author="tenagrim">
         <sql><![CDATA[
             CREATE CONSTRAINT TRIGGER trg_account_delete_check
                 AFTER DELETE ON account
                 DEFERRABLE INITIALLY DEFERRED
                 FOR EACH ROW
-                EXECUTE FUNCTION check_user_has_account();
+                EXECUTE FUNCTION check_account_delete();
 
             CREATE CONSTRAINT TRIGGER trg_email_delete_check
                 AFTER DELETE ON email_data
                 DEFERRABLE INITIALLY DEFERRED
                 FOR EACH ROW
-                EXECUTE FUNCTION check_user_has_email();
+                EXECUTE FUNCTION check_email_delete();
 
             CREATE CONSTRAINT TRIGGER trg_phone_delete_check
                 AFTER DELETE ON phone_data
                 DEFERRABLE INITIALLY DEFERRED
                 FOR EACH ROW
-                EXECUTE FUNCTION check_user_has_phone();
+                EXECUTE FUNCTION check_phone_delete();
             ]]></sql>
     </changeSet>
-
-
 
 </databaseChangeLog>

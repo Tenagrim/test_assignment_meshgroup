@@ -9,7 +9,6 @@ import com.tenagrim.meshgrouptestassg.repository.UserRepository;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Isolation;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
@@ -28,10 +27,12 @@ public class TransferService {
         this.userRepository = userRepository;
     }
 
-    @Transactional(isolation = Isolation.REPEATABLE_READ)
+    @Transactional
     public TransferResponse transfer(Long fromUserId, TransferRequest request) {
         Long toUserId = request.getUserId();
         BigDecimal amount = request.getValue();
+
+        validate(toUserId, amount);
 
         if (fromUserId.equals(toUserId)) {
             throw new SelfTransferException();
@@ -75,5 +76,20 @@ public class TransferService {
                 from.getBalance(),
                 to.getBalance()
         );
+    }
+
+    private void validate(Long toUserId, BigDecimal amount) {
+        if (toUserId == null) {
+            throw new InvalidTransferException("Recipient userId is required");
+        }
+        if (amount == null) {
+            throw new InvalidTransferException("Amount is required");
+        }
+        if (amount.signum() <= 0) {
+            throw new InvalidTransferException("Amount must be positive");
+        }
+        if (amount.stripTrailingZeros().scale() > 2) {
+            throw new InvalidTransferException("Amount must have at most 2 decimal places");
+        }
     }
 }
