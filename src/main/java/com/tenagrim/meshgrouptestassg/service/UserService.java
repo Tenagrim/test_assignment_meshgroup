@@ -1,5 +1,6 @@
 package com.tenagrim.meshgrouptestassg.service;
 
+import com.tenagrim.meshgrouptestassg.cache.CacheNames;
 import com.tenagrim.meshgrouptestassg.dto.request.UserSearchRequest;
 import com.tenagrim.meshgrouptestassg.dto.response.PageResponse;
 import com.tenagrim.meshgrouptestassg.dto.response.UserResponse;
@@ -8,6 +9,7 @@ import com.tenagrim.meshgrouptestassg.exception.UserNotFoundException;
 import com.tenagrim.meshgrouptestassg.mapper.UserMapper;
 import com.tenagrim.meshgrouptestassg.repository.UserRepository;
 import com.tenagrim.meshgrouptestassg.repository.UserSpecifications;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
@@ -26,6 +28,7 @@ public class UserService {
         this.userMapper = userMapper;
     }
 
+    @Cacheable(cacheNames = CacheNames.USERS, key = "#id")
     @Transactional(readOnly = true)
     public UserResponse getById(Long id) {
         User user = userRepository.findById(id)
@@ -33,6 +36,7 @@ public class UserService {
         return userMapper.toResponse(user);
     }
 
+    @Cacheable(cacheNames = CacheNames.USER_SEARCH, key = "#filter.cacheKey(#page, #size)")
     @Transactional(readOnly = true)
     public PageResponse<UserResponse> search(UserSearchRequest filter, int page, int size) {
         Pageable pageable = PageRequest.of(page, size, Sort.by("id").ascending());

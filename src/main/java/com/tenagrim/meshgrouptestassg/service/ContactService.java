@@ -1,5 +1,6 @@
 package com.tenagrim.meshgrouptestassg.service;
 
+import com.tenagrim.meshgrouptestassg.cache.EvictUserCaches;
 import com.tenagrim.meshgrouptestassg.dto.request.*;
 import com.tenagrim.meshgrouptestassg.entity.EmailData;
 import com.tenagrim.meshgrouptestassg.entity.PhoneData;
@@ -28,6 +29,7 @@ public class ContactService {
         this.phoneRepository = phoneRepository;
     }
 
+    @EvictUserCaches
     @Transactional
     public EmailData addEmail(Long userId, EmailRequest request) {
         if (emailRepository.existsByEmail(request.getEmail())) {
@@ -43,6 +45,7 @@ public class ContactService {
         return emailRepository.save(email);
     }
 
+    @EvictUserCaches
     @Transactional
     public EmailData updateEmail(Long userId, EmailUpdateRequest request) {
         EmailData email = emailRepository.findByEmail(request.getOldEmail())
@@ -64,6 +67,7 @@ public class ContactService {
         return emailRepository.save(email);
     }
 
+    @EvictUserCaches
     @Transactional
     public void deleteEmail(Long userId, EmailRequest request) {
         EmailData email = emailRepository.findByEmail(request.getEmail())
@@ -82,6 +86,7 @@ public class ContactService {
     }
 
 
+    @EvictUserCaches
     @Transactional
     public PhoneData addPhone(Long userId, PhoneRequest request) {
         if (phoneRepository.existsByPhone(request.getPhone())) {
@@ -97,6 +102,7 @@ public class ContactService {
         return phoneRepository.save(phone);
     }
 
+    @EvictUserCaches
     @Transactional
     public PhoneData updatePhone(Long userId, PhoneUpdateRequest request) {
         PhoneData phone = phoneRepository.findByPhone(request.getOldPhone())
@@ -118,6 +124,7 @@ public class ContactService {
         return phoneRepository.save(phone);
     }
 
+    @EvictUserCaches
     @Transactional
     public void deletePhone(Long userId, PhoneRequest request) {
         PhoneData phone = phoneRepository.findByPhone(request.getPhone())

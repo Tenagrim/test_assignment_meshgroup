@@ -22,6 +22,12 @@ spring:
   liquibase:
     enabled: true
     change-log: "classpath:/db/changelog/db.changelog-master.xml"
+
+  redis:
+    host: ${REDIS_HOST:localhost}
+    port: ${REDIS_PORT:6379}
+    timeout: 2s
+    connect-timeout: 2s
 app:
   jwt:
     secret: "web.servletapi.SecurityContextHolderAwareRequestFilter@674d2b8b, org.springframework.security.web.authentication.AnonymousAuthenticationFilter@4c57ca10"
@@ -29,3 +35,6 @@ app:
   balance:
     growth-rate: 1.10
     max-multiplier: 2.07
+  cache:
+    users-ttl: 10m
+    user-search-ttl: 1m

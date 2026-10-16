@@ -26,4 +26,18 @@ public class UserSearchRequest {
 
     public String getEmail() { return email; }
     public void setEmail(String email) { this.email = email; }
+
+    public String cacheKey(int page, int size) {
+        return String.join("|",
+                String.valueOf(dateOfBirth),
+                normalize(phone),
+                normalize(email),
+                String.valueOf(page),
+                String.valueOf(size),
+                normalize(name));
+    }
+
+    private static String normalize(String value) {
+        return value == null || value.isBlank() ? "" : value;
+    }
 }
