@@ -1,5 +1,7 @@
 package com.tenagrim.meshgrouptestassg.entity;
 
+import org.hibernate.annotations.BatchSize;
+
 import javax.persistence.*;
 import java.time.LocalDate;
 import java.util.ArrayList;
@@ -22,12 +24,14 @@ public class User {
     @Column(name = "password", length = 500, nullable = false)
     private String password;
 
-    @OneToOne(mappedBy = "user", cascade = CascadeType.ALL, orphanRemoval = true)
-    private Account account;
+    //connection to account removwd because we dont need it here, and it causes +1 request in search
+    // if we will need this connection better to store fk in user, not in account
 
+    @BatchSize(size = 50)
     @OneToMany(mappedBy = "user", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<EmailData> emails = new ArrayList<>();
 
+    @BatchSize(size = 50)
     @OneToMany(mappedBy = "user", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<PhoneData> phones = new ArrayList<>();
 
@@ -43,9 +47,6 @@ public class User {
 
     public String getPassword() { return password; }
     public void setPassword(String password) { this.password = password; }
-
-    public Account getAccount() { return account; }
-    public void setAccount(Account account) { this.account = account; }
 
     public List<EmailData> getEmails() { return emails; }
     public void setEmails(List<EmailData> emails) { this.emails = emails; }

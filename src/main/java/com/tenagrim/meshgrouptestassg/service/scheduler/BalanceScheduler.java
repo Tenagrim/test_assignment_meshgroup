@@ -17,7 +17,7 @@ public class BalanceScheduler {
         this.accountService = accountService;
     }
 
-    @Scheduled(fixedRate = 5_000)
+    @Scheduled(fixedRate = 30_000)
     public void accrueInterest() {
         long startTimeMillis = System.currentTimeMillis();
         int updated = accountService.applyInterestAll();

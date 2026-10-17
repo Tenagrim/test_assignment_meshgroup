@@ -14,6 +14,7 @@ import com.tenagrim.meshgrouptestassg.util.Emails;
 import com.tenagrim.meshgrouptestassg.util.Masking;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -27,6 +28,9 @@ public class ContactService {
     private final UserRepository userRepository;
     private final EmailDataRepository emailRepository;
     private final PhoneDataRepository phoneRepository;
+
+    private static final String PHONE_CONSTRAINT = "uq_phone_data_phone";
+    private static final String EMAIL_CONSTRAINT = "uq_email_data_email";
 
     public ContactService(UserRepository userRepository,
                           EmailDataRepository emailRepository,
@@ -50,7 +54,7 @@ public class ContactService {
         EmailData email = new EmailData();
         email.setUser(user);
         email.setEmail(value);
-        EmailData saved = emailRepository.save(email);
+        EmailData saved = saveEmail(email);
         AfterCommit.run(() -> log.info("Email added: userId={} email={}", userId, Masking.email(value)));
         return saved;
     }
@@ -77,7 +81,7 @@ public class ContactService {
         }
 
         email.setEmail(newEmail);
-        EmailData saved = emailRepository.save(email);
+        EmailData saved = saveEmail(email);
         AfterCommit.run(() -> log.info("Email changed: userId={} from={} to={}",
                 userId, Masking.email(oldEmail), Masking.email(newEmail)));
         return saved;
@@ -117,7 +121,7 @@ public class ContactService {
         PhoneData phone = new PhoneData();
         phone.setUser(user);
         phone.setPhone(request.getPhone());
-        PhoneData saved = phoneRepository.save(phone);
+        PhoneData saved = savePhone(phone);
         AfterCommit.run(() -> log.info("Phone added: userId={} phone={}", userId, Masking.phone(request.getPhone())));
         return saved;
     }
@@ -141,7 +145,7 @@ public class ContactService {
         }
 
         phone.setPhone(request.getNewPhone());
-        PhoneData saved = phoneRepository.save(phone);
+        PhoneData saved = savePhone(phone);
         AfterCommit.run(() -> log.info("Phone changed: userId={} from={} to={}",
                 userId, Masking.phone(request.getOldPhone()), Masking.phone(request.getNewPhone())));
         return saved;
@@ -164,5 +168,31 @@ public class ContactService {
 
         phoneRepository.delete(phone);
         AfterCommit.run(() -> log.info("Phone deleted: userId={} phone={}", userId, Masking.phone(request.getPhone())));
+    }
+
+    private EmailData saveEmail(EmailData email) {
+        try {
+            return emailRepository.saveAndFlush(email);
+        } catch (DataIntegrityViolationException e) {
+            if (isConstraint(e, EMAIL_CONSTRAINT))
+                throw new EmailAlreadyTakenException(email.getEmail());
+            else throw e;
+        }
+    }
+
+    private PhoneData savePhone(PhoneData phone) {
+        try {
+            return phoneRepository.saveAndFlush(phone);
+        } catch (DataIntegrityViolationException e) {
+            if (isConstraint(e, PHONE_CONSTRAINT))
+                throw new PhoneAlreadyTakenException(phone.getPhone());
+            else throw e;
+        }
+    }
+
+    private static boolean isConstraint(DataIntegrityViolationException e, String constraintName) {
+        return e.getCause() instanceof org.hibernate.exception.ConstraintViolationException
+                && constraintName.equalsIgnoreCase(
+                ((org.hibernate.exception.ConstraintViolationException) e.getCause()).getConstraintName());
     }
 }

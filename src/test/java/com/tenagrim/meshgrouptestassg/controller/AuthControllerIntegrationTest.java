@@ -5,12 +5,14 @@ import com.tenagrim.meshgrouptestassg.entity.Account;
 import com.tenagrim.meshgrouptestassg.entity.EmailData;
 import com.tenagrim.meshgrouptestassg.entity.PhoneData;
 import com.tenagrim.meshgrouptestassg.entity.User;
+import com.tenagrim.meshgrouptestassg.repository.AccountRepository;
 import com.tenagrim.meshgrouptestassg.repository.UserRepository;
 import com.tenagrim.meshgrouptestassg.security.JwtService;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.ResultActions;
+import org.springframework.transaction.support.TransactionTemplate;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
@@ -29,6 +31,12 @@ class AuthControllerIntegrationTest extends AbstractIntegrationTest {
 
     @Autowired
     private UserRepository userRepository;
+
+    @Autowired
+    private AccountRepository accountRepository;
+
+    @Autowired
+    private TransactionTemplate transactionTemplate;
 
     @Test
     void login_byEmail_returnsTokenForThatUser() throws Exception {
@@ -81,8 +89,8 @@ class AuthControllerIntegrationTest extends AbstractIntegrationTest {
 
     @Test
     void login_namesakes_eachGetsOwnTokenAndCannotUseOthersPassword() throws Exception {
-        User first = userRepository.save(user("Однофамилец Тестовый", "namesake1@example.com", "79990000001", "namesake-one"));
-        User second = userRepository.save(user("Однофамилец Тестовый", "namesake2@example.com", "79990000002", "namesake-two"));
+        User first = createUser("Однофамилец Тестовый", "namesake1@example.com", "79990000001", "namesake-one");
+        User second = createUser("Однофамилец Тестовый", "namesake2@example.com", "79990000002", "namesake-two");
 
         String firstToken = login("namesake1@example.com", "namesake-one")
                 .andExpect(status().isOk())
@@ -105,17 +113,25 @@ class AuthControllerIntegrationTest extends AbstractIntegrationTest {
                 .content("{\"login\":\"" + login + "\",\"password\":\"" + password + "\"}"));
     }
 
+    private User createUser(String name, String email, String phone, String password) {
+        return transactionTemplate.execute(status -> {
+            User user = userRepository.save(user(name, email, phone, password));
+
+            Account account = new Account();
+            account.setUser(user);
+            account.setBalance(new BigDecimal("100.00"));
+            account.setInitialBalance(new BigDecimal("100.00"));
+            accountRepository.save(account);
+
+            return user;
+        });
+    }
+
     private static User user(String name, String email, String phone, String password) {
         User user = new User();
         user.setName(name);
         user.setDateOfBirth(LocalDate.of(1990, 1, 1));
         user.setPassword(password);
-
-        Account account = new Account();
-        account.setUser(user);
-        account.setBalance(new BigDecimal("100.00"));
-        account.setInitialBalance(new BigDecimal("100.00"));
-        user.setAccount(account);
 
         EmailData emailData = new EmailData();
         emailData.setUser(user);

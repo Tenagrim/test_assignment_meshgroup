@@ -41,7 +41,8 @@
                                         email       VARCHAR(200)    NOT NULL UNIQUE,
                                         CONSTRAINT fk_email_data_user
                                             FOREIGN KEY (user_id) REFERENCES "user" (id)
-                                                ON DELETE CASCADE
+                                                ON DELETE CASCADE,
+                                        CONSTRAINT uq_email_data_email UNIQUE (email)
             );
         ]]></sql>
     </changeSet>
@@ -54,9 +55,10 @@
                                         phone       VARCHAR(13)     NOT NULL UNIQUE,
                                         CONSTRAINT fk_phone_data_user
                                             FOREIGN KEY (user_id) REFERENCES "user" (id)
-                                                ON DELETE CASCADE
+                                                ON DELETE CASCADE,
+                                        CONSTRAINT uq_phone_data_phone UNIQUE (phone)
             );
-        ]]></sql>
+            ]]></sql>
     </changeSet>
 
     <changeSet id="0001-05-create-indexes" author="tenagrim">
