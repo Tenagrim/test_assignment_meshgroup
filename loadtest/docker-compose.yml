@@ -76,7 +76,7 @@ services:
       redis:
         condition: service_healthy
     healthcheck: *app-healthcheck
-    mem_limit: 640m
+    mem_limit: 1g
 
   seed:
     image: postgres:17-alpine
@@ -108,7 +108,7 @@ services:
     healthcheck: *app-healthcheck
     deploy:
       replicas: ${APP_REPLICAS:-2}
-    mem_limit: 640m
+    mem_limit: 1g
 
   nginx:
     image: nginx:1.27-alpine
