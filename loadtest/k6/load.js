@@ -9,6 +9,7 @@ const TARGET_RPS = parseInt(__ENV.TARGET_RPS || '1000', 10);
 const RAMP_UP = __ENV.RAMP_UP || '30s';
 const HOLD = __ENV.HOLD || '2m';
 const RESULTS_DIR = __ENV.RESULTS_DIR || '/results';
+const SCENARIO = __ENV.SCENARIO || 'mixed';
 
 const JSON_HEADERS = { 'Content-Type': 'application/json' };
 
@@ -31,7 +32,12 @@ export const options = {
     thresholds: {
         http_req_failed: ['rate<0.01'],
         http_req_duration: ['p(95)<300'],
+        'http_req_duration{endpoint:me}': ['p(95)<300'],
+        'http_req_duration{endpoint:getById}': ['p(95)<300'],
+        'http_req_duration{endpoint:search}': ['p(95)<300'],
         'http_req_duration{endpoint:transfer}': ['p(95)<500'],
+        'http_req_duration{endpoint:credit}': ['p(95)<300'],
+        'http_req_duration{endpoint:withdraw}': ['p(95)<300'],
         dropped_iterations: ['count<100'],
     },
     summaryTrendStats: ['avg', 'med', 'p(90)', 'p(95)', 'p(99)', 'max'],
@@ -124,27 +130,53 @@ function transfer() {
     check(response, { 'transfer 200': (r) => r.status === 200 });
 }
 
+function changeBalance(operation) {
+    const response = http.post(
+        `${BASE_URL}/api/account/${operation}`,
+        JSON.stringify({ value: '1.00' }),
+        { headers: Object.assign({}, JSON_HEADERS, authHeaders()), tags: { endpoint: operation } },
+    );
+    check(response, { [`${operation} 200`]: (r) => r.status === 200 });
+}
+
+function mixed() {
+    const roll = Math.random();
+    if (roll < 0.35) {
+        getMe();
+    } else if (roll < 0.45) {
+        getById();
+    } else if (roll < 0.65) {
+        search();
+    } else if (roll < 0.75) {
+        transfer();
+    } else if (roll < 0.875) {
+        changeBalance('credit');
+    } else {
+        changeBalance('withdraw');
+    }
+}
+
+function balance() {
+    changeBalance(Math.random() < 0.5 ? 'credit' : 'withdraw');
+}
+
+const SCENARIOS = { mixed, balance };
+
+if (!SCENARIOS[SCENARIO]) {
+    throw new Error(`Unknown SCENARIO: ${SCENARIO}, expected one of: ${Object.keys(SCENARIOS).join(', ')}`);
+}
+
 export default function () {
     if (!token) {
         login();
         return;
     }
-
-    const roll = Math.random();
-    if (roll < 0.45) {
-        getMe();
-    } else if (roll < 0.60) {
-        getById();
-    } else if (roll < 0.85) {
-        search();
-    } else {
-        transfer();
-    }
+    SCENARIOS[SCENARIO]();
 }
 
 export function handleSummary(data) {
     const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
-    const baseName = `${RESULTS_DIR}/summary-${timestamp}-rps${TARGET_RPS}`;
+    const baseName = `${RESULTS_DIR}/summary-${timestamp}-${SCENARIO}-rps${TARGET_RPS}`;
     return {
         stdout: textSummary(data, { indent: ' ', enableColors: true }),
         [`${baseName}.txt`]: textSummary(data, { indent: ' ', enableColors: false }),

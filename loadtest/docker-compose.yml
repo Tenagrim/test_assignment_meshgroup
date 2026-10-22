@@ -35,8 +35,15 @@ services:
       - shared_preload_libraries=pg_stat_statements
       - -c
       - pg_stat_statements.track=all
+      - -c
+      - wal_level=logical
+      - -c
+      - max_replication_slots=4
+      - -c
+      - max_wal_senders=4
     volumes:
       - pg-data:/var/lib/postgresql/data
+      - ./postgres/init-dbezium.sql:/docker-entrypoint-initdb.d/init-debezium.sql:ro
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U test_assg -d test_assg"]
       interval: 3s
@@ -56,12 +63,13 @@ services:
 
   app-primary:
     build:
-      context: ..
+      context: ../base_app
     image: meshgroup-app:loadtest
     environment:
       <<: *app-env
       SPRING_LIQUIBASE_ENABLED: "true"
       APP_BALANCE_SCHEDULER_ENABLED: "true"
+      APP_SCHEDULER_CLEANUP_OUTBOX_ENABLED: "true"
     depends_on:
       postgres:
         condition: service_healthy
@@ -91,6 +99,7 @@ services:
       <<: *app-env
       SPRING_LIQUIBASE_ENABLED: "false"
       APP_BALANCE_SCHEDULER_ENABLED: "false"
+      APP_SCHEDULER_CLEANUP_OUTBOX_ENABLED: "false"
     depends_on:
       app-primary:
         condition: service_healthy
@@ -113,6 +122,110 @@ services:
       app:
         condition: service_healthy
 
+  kafka:
+    image: apache/kafka:3.7.0
+    environment:
+      KAFKA_NODE_ID: 1
+      KAFKA_PROCESS_ROLES: broker,controller
+      KAFKA_CONTROLLER_QUORUM_VOTERS: 1@kafka:9093
+      KAFKA_CONTROLLER_LISTENER_NAMES: CONTROLLER
+      KAFKA_LISTENERS: PLAINTEXT://0.0.0.0:9092,CONTROLLER://0.0.0.0:9093
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka:9092
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: CONTROLLER:PLAINTEXT,PLAINTEXT:PLAINTEXT
+      KAFKA_INTER_BROKER_LISTENER_NAME: PLAINTEXT
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+      KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: 1
+      KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: 1
+      KAFKA_GROUP_INITIAL_REBALANCE_DELAY_MS: 0
+      KAFKA_AUTO_CREATE_TOPICS_ENABLE: "true"
+      KAFKA_NUM_PARTITIONS: ${KAFKA_PARTITIONS:-6}
+      KAFKA_HEAP_OPTS: "-Xms512m -Xmx512m"
+    healthcheck:
+      test: ["CMD-SHELL", "/opt/kafka/bin/kafka-broker-api-versions.sh --bootstrap-server localhost:9092 > /dev/null 2>&1"]
+      interval: 5s
+      timeout: 10s
+      retries: 30
+      start_period: 10s
+    mem_limit: 1g
+
+  connect:
+    image: quay.io/debezium/connect:2.7
+    environment:
+      BOOTSTRAP_SERVERS: kafka:9092
+      GROUP_ID: "1"
+      CONFIG_STORAGE_TOPIC: my_connect_configs
+      OFFSET_STORAGE_TOPIC: my_connect_offsets
+      STATUS_STORAGE_TOPIC: my_connect_statuses
+      HEAP_OPTS: "-Xms256m -Xmx512m"
+    depends_on:
+      kafka:
+        condition: service_healthy
+      postgres:
+        condition: service_healthy
+    mem_limit: 1g
+
+  connect-init:
+    image: curlimages/curl:8.10.1
+    volumes:
+      - ./dbezium/register-postgres.json:/register-postgres.json:ro
+    entrypoint: >
+      sh -c "
+      until curl -s -o /dev/null http://connect:8083/connectors; do
+        echo 'Kafka Connect is not ready, waiting...';
+        sleep 3;
+      done;
+      curl -sf -X PUT -H 'Content-Type: application/json' --data @/register-postgres.json http://connect:8083/connectors/outbox-connector/config
+      && echo 'Connector registered'
+      "
+    depends_on:
+      connect:
+        condition: service_started
+      app-primary:
+        condition: service_healthy
+    restart: "no"
+
+  wiremock:
+    image: wiremock/wiremock:3.13.2
+    volumes:
+      - ./wiremock:/home/wiremock
+    command:
+      - "--async-response-enabled=true"
+      - "--no-request-journal"
+      - "--container-threads=50"
+      - "--global-response-templating"
+    mem_limit: 512m
+
+  sender:
+    build:
+      context: ../sender
+    image: meshgroup-sender:loadtest
+    environment:
+      KAFKA_BOOTSTRAP_SERVERS: kafka:9092
+      NOTIFICATION_URL: http://wiremock:8080
+      APP_NOTIFICATION_CONCURRENCY: ${SENDER_CONCURRENCY:-50}
+    depends_on:
+      kafka:
+        condition: service_healthy
+      wiremock:
+        condition: service_started
+    deploy:
+      replicas: ${SENDER_REPLICAS:-1}
+    mem_limit: 512m
+
+  kafka-ui:
+    image: ghcr.io/kafbat/kafka-ui:v1.2.0
+    environment:
+      KAFKA_CLUSTERS_0_NAME: loadtest
+      KAFKA_CLUSTERS_0_BOOTSTRAPSERVERS: kafka:9092
+      KAFKA_CLUSTERS_0_KAFKACONNECT_0_NAME: connect
+      KAFKA_CLUSTERS_0_KAFKACONNECT_0_ADDRESS: http://connect:8083
+    ports:
+      - "${KAFKA_UI_PORT:-8091}:8080"
+    depends_on:
+      kafka:
+        condition: service_healthy
+    mem_limit: 512m
+
   k6:
     image: grafana/k6:0.54.0
     profiles: ["test"]
@@ -121,6 +234,7 @@ services:
       BASE_URL: http://nginx
       SEED_USERS: ${SEED_USERS:-20000}
       FIRST_SEED_ID: "4"
+      SCENARIO: ${SCENARIO:-mixed}
       TARGET_RPS: ${TARGET_RPS:-1000}
       RAMP_UP: ${RAMP_UP:-30s}
       HOLD: ${HOLD:-2m}
@@ -132,19 +246,6 @@ services:
     depends_on:
       nginx:
         condition: service_started
-
-  wiremock:
-    image: wiremock/wiremock:3.13.2
-    container_name: wiremock-notify
-    ports:
-      - "8089:8080"
-    volumes:
-      - ./wiremock:/home/wiremock
-    command:
-      - "--async-response-enabled=true"
-      - "--no-request-journal"
-      - "--container-threads=50"
-      - "--global-response-templating"
 
 volumes:
   pg-data:
