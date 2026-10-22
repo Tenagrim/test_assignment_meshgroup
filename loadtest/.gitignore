@@ -1,0 +1,3 @@
+results/*
+!results/.gitkeep
+wiremock/__files

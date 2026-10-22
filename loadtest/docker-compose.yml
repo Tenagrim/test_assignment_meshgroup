@@ -1,0 +1,150 @@
+name: meshgroup-loadtest
+
+x-app-env: &app-env
+  DB_URL: jdbc:postgresql://postgres:5432/test_assg
+  DB_USERNAME: test_assg
+  DB_PASSWORD: test_assg
+  REDIS_HOST: redis
+  REDIS_PORT: "6379"
+  SPRING_DATASOURCE_HIKARI_MAXIMUM_POOL_SIZE: ${DB_POOL_SIZE:-10}
+  SPRING_DATASOURCE_HIKARI_MINIMUM_IDLE: ${DB_POOL_SIZE:-10}
+  APP_BALANCE_RESET_ON_STARTUP: "false"
+  LOGGING_LEVEL_COM_TENAGRIM: ${APP_LOG_LEVEL:-INFO}
+
+x-app-healthcheck: &app-healthcheck
+  test: ["CMD", "curl", "-fs", "http://localhost:8080/actuator/health"]
+  interval: 5s
+  timeout: 3s
+  retries: 30
+  start_period: 20s
+
+services:
+  postgres:
+    image: postgres:17-alpine
+    environment:
+      POSTGRES_DB: test_assg
+      POSTGRES_USER: test_assg
+      POSTGRES_PASSWORD: test_assg
+    command:
+      - postgres
+      - -c
+      - max_connections=200
+      - -c
+      - shared_buffers=256MB
+      - -c
+      - shared_preload_libraries=pg_stat_statements
+      - -c
+      - pg_stat_statements.track=all
+    volumes:
+      - pg-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U test_assg -d test_assg"]
+      interval: 3s
+      timeout: 3s
+      retries: 20
+    mem_limit: 768m
+
+  redis:
+    image: redis:7-alpine
+    command: ["redis-server", "--save", "", "--appendonly", "no"]
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 3s
+      timeout: 3s
+      retries: 20
+    mem_limit: 128m
+
+  app-primary:
+    build:
+      context: ..
+    image: meshgroup-app:loadtest
+    environment:
+      <<: *app-env
+      SPRING_LIQUIBASE_ENABLED: "true"
+      APP_BALANCE_SCHEDULER_ENABLED: "true"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    healthcheck: *app-healthcheck
+    mem_limit: 640m
+
+  seed:
+    image: postgres:17-alpine
+    environment:
+      PGHOST: postgres
+      PGUSER: test_assg
+      PGPASSWORD: test_assg
+      PGDATABASE: test_assg
+    command: ["psql", "-v", "ON_ERROR_STOP=1", "-v", "users=${SEED_USERS:-20000}", "-f", "/seed/seed.sql"]
+    volumes:
+      - ./seed:/seed:ro
+    depends_on:
+      app-primary:
+        condition: service_healthy
+    restart: "no"
+
+  app:
+    image: meshgroup-app:loadtest
+    environment:
+      <<: *app-env
+      SPRING_LIQUIBASE_ENABLED: "false"
+      APP_BALANCE_SCHEDULER_ENABLED: "false"
+    depends_on:
+      app-primary:
+        condition: service_healthy
+      seed:
+        condition: service_completed_successfully
+    healthcheck: *app-healthcheck
+    deploy:
+      replicas: ${APP_REPLICAS:-2}
+    mem_limit: 640m
+
+  nginx:
+    image: nginx:1.27-alpine
+    volumes:
+      - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+    ports:
+      - "${LB_PORT:-8088}:80"
+    depends_on:
+      app-primary:
+        condition: service_healthy
+      app:
+        condition: service_healthy
+
+  k6:
+    image: grafana/k6:0.54.0
+    profiles: ["test"]
+    user: "${K6_USER:-root}"
+    environment:
+      BASE_URL: http://nginx
+      SEED_USERS: ${SEED_USERS:-20000}
+      FIRST_SEED_ID: "4"
+      TARGET_RPS: ${TARGET_RPS:-1000}
+      RAMP_UP: ${RAMP_UP:-30s}
+      HOLD: ${HOLD:-2m}
+      RESULTS_DIR: /results
+    volumes:
+      - ./k6:/scripts:ro
+      - ./results:/results
+    command: ["run", "/scripts/load.js"]
+    depends_on:
+      nginx:
+        condition: service_started
+
+  wiremock:
+    image: wiremock/wiremock:3.13.2
+    container_name: wiremock-notify
+    ports:
+      - "8089:8080"
+    volumes:
+      - ./wiremock:/home/wiremock
+    command:
+      - "--async-response-enabled=true"
+      - "--no-request-journal"
+      - "--container-threads=50"
+      - "--global-response-templating"
+
+volumes:
+  pg-data:

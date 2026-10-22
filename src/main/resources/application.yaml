@@ -28,6 +28,12 @@ spring:
     port: ${REDIS_PORT:6379}
     timeout: 2s
     connect-timeout: 2s
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health
+
 logging:
   pattern:
     level: "%5p [req=%X{requestId:-}] [user=%X{userId:-}]"
@@ -39,6 +45,8 @@ app:
   balance:
     growth-rate: 1.10
     max-multiplier: 2.07
+    scheduler-enabled: true
+    reset-on-startup: true
   cache:
     users-ttl: 10m
     user-search-ttl: 1m

@@ -3,10 +3,12 @@ package com.tenagrim.meshgrouptestassg.service.scheduler;
 import com.tenagrim.meshgrouptestassg.service.AccountService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 
 @Component
+@ConditionalOnProperty(prefix = "app.balance", name = "scheduler-enabled", havingValue = "true", matchIfMissing = true)
 public class BalanceScheduler {
 
     private static final Logger log = LoggerFactory.getLogger(BalanceScheduler.class);
