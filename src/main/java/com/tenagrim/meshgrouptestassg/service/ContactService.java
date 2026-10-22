@@ -20,6 +20,8 @@ import org.springframework.transaction.annotation.Transactional;
 
 import javax.persistence.EntityNotFoundException;
 
+import static com.tenagrim.meshgrouptestassg.util.Persistence.isConstraint;
+
 @Service
 public class ContactService {
 
@@ -188,11 +190,5 @@ public class ContactService {
                 throw new PhoneAlreadyTakenException(phone.getPhone());
             else throw e;
         }
-    }
-
-    private static boolean isConstraint(DataIntegrityViolationException e, String constraintName) {
-        return e.getCause() instanceof org.hibernate.exception.ConstraintViolationException
-                && constraintName.equalsIgnoreCase(
-                ((org.hibernate.exception.ConstraintViolationException) e.getCause()).getConstraintName());
     }
 }

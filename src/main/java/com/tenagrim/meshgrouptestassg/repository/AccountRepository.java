@@ -30,4 +30,14 @@ public interface AccountRepository extends JpaRepository<Account, Long> {
             nativeQuery = true)
     int initInitialBalance();
 
+    @Modifying(clearAutomatically = true)
+    @Query(value =
+    "WITH updated AS (" +
+    "    UPDATE account SET balance = balance + CAST(:amount AS numeric) WHERE id = :userId RETURNING id)" +
+    "INSERT INTO outbox_notification (id, aggregatetype, aggregateid, type, payload, created_at)" +
+    "SELECT gen_random_uuid(), 'notification', CAST(:userId AS text), 'BalanceChanged', CAST(:payload AS jsonb), now()" +
+    "FROM updated"
+    , nativeQuery = true)
+    int changeBalanceAndSaveOutbox(@Param("userId") Long userId, @Param("amount") BigDecimal amount,@Param("payload") String payload);
+
 }
