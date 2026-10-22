@@ -3,16 +3,38 @@ spring:
     name: sender
   main:
     web-application-type: none
-  kayfka:
-    bootstrap-servers: localhost:9092  # ????? ???????
+  kafka:
+    bootstrap-servers: ${KAFKA_BOOTSTRAP_SERVERS:localhost:9092}
     consumer:
-      group-id: "notification-group"
-      auto-offset-reset: earliest      # ??? ????? ?????? ?????? ? ??????
+      group-id: notification-sender
+      auto-offset-reset: earliest
+      max-poll-records: 200
       key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
       value-deserializer: org.apache.kafka.common.serialization.StringDeserializer
 
 app:
-  notification_url: ${NOTIFICATION_URL:http://localhost:8089}
+  kafka:
+    topic: notification
+    error-backoff:
+      initial-interval: 1s
+      multiplier: 2.0
+      max-interval: 30s
+      max-elapsed-time: 10m
+  notification:
+    url: ${NOTIFICATION_URL:http://localhost:8089}
+    connect-timeout: 1s
+    response-timeout: 2s
+    concurrency: 50
+    retry:
+      max-attempts: 3
+      min-backoff: 200ms
+      max-backoff: 2s
+    circuit-breaker:
+      failure-rate-threshold: 50
+      sliding-window-size: 50
+      minimum-number-of-calls: 20
+      wait-duration-in-open-state: 10s
+      permitted-calls-in-half-open-state: 5
 
 logging:
   level:

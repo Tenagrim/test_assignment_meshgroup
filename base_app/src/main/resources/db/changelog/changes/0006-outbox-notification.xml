@@ -18,20 +18,9 @@
             );
             ]]></sql>
     </changeSet>
-    <changeSet id="0006-02-grant-select-on-outbox-notification" author="tenagrim">
-        <sql><![CDATA[
-            GRANT SELECT ON TABLE public.outbox_notification TO debezium;
-            ]]></sql>
-    </changeSet>
     <changeSet id="0006-03-create-publication" author="tenagrim">
         <sql><![CDATA[
             CREATE PUBLICATION dbz_publication FOR TABLE public.outbox_notification;
-            ]]></sql>
-    </changeSet>
-    <changeSet id="0006-04-add-test-notification" author="tenagrim">
-        <sql><![CDATA[
-            INSERT INTO public.outbox_notification ( aggregatetype, aggregateid, type, payload) VALUES ('notification', '1', 'NotificationCreated', '{"text": "test notification"}');
-
             ]]></sql>
     </changeSet>
 

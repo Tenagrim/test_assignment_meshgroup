@@ -2,8 +2,8 @@ package com.tenagrim.meshgrouptestassg.service;
 
 
 import com.tenagrim.meshgrouptestassg.config.properties.BalanceProperties;
+import com.tenagrim.meshgrouptestassg.exception.AccountNotFoundException;
 import com.tenagrim.meshgrouptestassg.exception.InsufficientFundsException;
-import com.tenagrim.meshgrouptestassg.exception.PhoneAlreadyTakenException;
 import com.tenagrim.meshgrouptestassg.repository.AccountRepository;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -46,12 +46,16 @@ public class AccountService {
 
     @Transactional
     public void changeBalance(Long userId, BigDecimal amount){
+        int updated;
         try{
-            accountRepository.changeBalanceAndSaveOutbox(userId, amount, "{\"text\":\"balance changed\"}");
+            updated = accountRepository.changeBalanceAndSaveOutbox(userId, amount, "{\"text\":\"balance changed\"}");
         } catch (DataIntegrityViolationException e) {
             if (isConstraint(e, BALANCE_NON_NEGATIVE_CONSTRAINT))
                 throw new InsufficientFundsException(userId, amount);
             else throw e;
+        }
+        if (updated == 0) {
+            throw new AccountNotFoundException(userId);
         }
     }
 }
