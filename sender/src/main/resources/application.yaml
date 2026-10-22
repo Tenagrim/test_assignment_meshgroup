@@ -1,0 +1,19 @@
+spring:
+  application:
+    name: sender
+  main:
+    web-application-type: none
+  kayfka:
+    bootstrap-servers: localhost:9092  # ????? ???????
+    consumer:
+      group-id: "notification-group"
+      auto-offset-reset: earliest      # ??? ????? ?????? ?????? ? ??????
+      key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+      value-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+
+app:
+  notification_url: ${NOTIFICATION_URL:http://localhost:8089}
+
+logging:
+  level:
+    org.springframework.kafka: INFO
